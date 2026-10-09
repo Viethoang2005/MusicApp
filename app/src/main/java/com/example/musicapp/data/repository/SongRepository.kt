@@ -21,7 +21,6 @@ class SongRepository @Inject constructor() {
                 title = document.getString("title") ?: "",
                 artistId = document.getString("artistId") ?: "",
                 audioUrl = document.getString("audioUrl") ?: "",
-                imageUrl = document.getString("imageUrl") ?: "",
                 duration = document.getLong("duration") ?: 0
             )
         }

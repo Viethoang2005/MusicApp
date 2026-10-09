@@ -3,7 +3,6 @@ package com.example.musicapp.ui.home
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -19,6 +18,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.colorResource
@@ -33,7 +35,9 @@ import com.example.musicapp.PlayerState
 import com.example.musicapp.R
 import com.example.musicapp.SongViewModel
 import com.example.musicapp.components.CardSongItem
+import com.example.musicapp.components.MiniPlayer
 import com.example.musicapp.data.model.SongUIModel
+import com.example.musicapp.ui.play.PlayerScreen
 
 @Composable
 fun HomeScreen(
@@ -44,16 +48,37 @@ fun HomeScreen(
     val songs by homeViewModel.songs.collectAsState()
     val playerState by songViewModel.playerState.collectAsState()
 
+    var isPlayingOpen by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
         homeViewModel.loadSongs()
     }
-    HomeScreenContent(
-        songs = songs,
-        playerState = playerState,
-        onSongClick = { list, index ->
-            songViewModel.setPlaylist(list, index)
+    Box(
+        Modifier.fillMaxSize()
+    ) {
+        if(isPlayingOpen) {
+            PlayerScreen(
+                songViewModel = songViewModel,
+                onBackClick = { isPlayingOpen = false }
+            )
+        }else {
+            HomeScreenContent(
+                songs = songs,
+                playerState = playerState,
+                onSongClick = { list, index ->
+                    songViewModel.setPlaylist(list, index)
+                },
+                onPlayPauseClick = {
+                    songViewModel.togglePlayPause()
+                },
+                onNext = {
+                    songViewModel.playNext()
+                },
+                onNavigateToPlayerScreen = {
+                    isPlayingOpen = true
+                }
+            )
         }
-    )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -61,80 +86,107 @@ fun HomeScreen(
 fun HomeScreenContent(
     songs: List<SongUIModel>,
     playerState: PlayerState,
-    onSongClick: (List<SongUIModel>, Int) -> Unit
+    onSongClick: (List<SongUIModel>, Int) -> Unit,
+    onPlayPauseClick: () -> Unit,
+    onNext: () -> Unit,
+    onNavigateToPlayerScreen: () -> Unit
 ) {
+
     Scaffold(
-        topBar = { TopAppBar(
-            windowInsets = WindowInsets(0, 0, 0, 0),
-            title = {
-                Box(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        "Music App",
-                        fontSize = 24.sp,
-                        textAlign = TextAlign.Center,
-                        color = colorResource(R.color.textPrimary)
-                    )
-                }
-            },
-            navigationIcon = {
-                Image(
-                    painter = painterResource(R.drawable.icon_music_app),
-                    contentDescription = null,
-                    modifier = Modifier.padding(start = 12.dp).size(36.dp)
-                )
-            },
-            actions =  {
-                Box(Modifier.size(48.dp))
-            },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = colorResource(R.color.primaryDark)
-            )
-        ) }
-    ) { innerPadding ->
-            if(songs.isEmpty()) {
-                Box(Modifier.fillMaxSize().padding(innerPadding).background(colorResource(R.color.primaryDark)),
-                    contentAlignment = Alignment.Center) {
-                    Text(
-                        text = "Khong tim thay nhac",
-                        fontSize = 25.sp,
-                        color = colorResource(R.color.textPrimary)
-                    )
-                }
-            }else {
-                Box(
-                    Modifier
-                        .fillMaxSize()
-                        .padding(innerPadding)
-                        .background(colorResource(R.color.primaryDark))
-                ) {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize().padding(16.dp)
+        containerColor = colorResource(R.color.primaryDark),
+        topBar = {
+            TopAppBar(
+                title = {
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
                     ) {
-                        item {
-                            Text(
-                                "List Musics",
-                                fontSize = 22.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = colorResource(R.color.textPrimary)
-                            )
-                        }
-                        itemsIndexed(songs) { index, song ->
-                            val isSelected = playerState.currentSongId == song.song.id
-                            CardSongItem(
-                                songUIModel = song,
-                                isSelected = isSelected,
-                                onClick = {
-                                    onSongClick(songs, index)
-                                }
-                            )
-                        }
+                        Text(
+                            "Music App",
+                            fontSize = 24.sp,
+                            textAlign = TextAlign.Center,
+                            color = colorResource(R.color.textPrimary)
+                        )
+                    }
+                },
+                navigationIcon = {
+                    Image(
+                        painter = painterResource(R.drawable.icon_music_app),
+                        contentDescription = null,
+                        modifier = Modifier
+                            .padding(start = 12.dp)
+                            .size(36.dp)
+                    )
+                },
+                actions = {
+                    Box(Modifier.size(48.dp))
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = colorResource(R.color.primaryDark)
+                )
+            )
+        },
+        bottomBar = {
+            if (playerState.currentSong != null) {
+                MiniPlayer(
+                    song = playerState.currentSong,
+                    isPlaying = playerState.isPlaying,
+                    onPlayPauseClick = onPlayPauseClick,
+                    onNext = onNext,
+                    onNavigateToPlayerScreen = onNavigateToPlayerScreen
+                )
+            }
+        }
+    ) { innerPadding ->
+        if (songs.isEmpty()) {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .background(colorResource(R.color.primaryDark)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Khong tim thay nhac",
+                    fontSize = 25.sp,
+                    color = colorResource(R.color.textPrimary)
+                )
+            }
+        } else {
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .background(colorResource(R.color.primaryDark))
+            ) {
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp)
+                ) {
+                    item {
+                        Text(
+                            "List Musics",
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = colorResource(R.color.textPrimary)
+                        )
+                    }
+                    itemsIndexed(songs) { index, song ->
+                        val isSelected = playerState.currentSongId == song.song.id
+                        CardSongItem(
+                            songUIModel = song,
+                            isSelected = isSelected,
+                            onClick = {
+                                onSongClick(songs, index)
+                            }
+                        )
                     }
                 }
             }
+
         }
+    }
 }
 
 @Preview
@@ -143,6 +195,9 @@ fun HomeScreenPreview() {
     HomeScreenContent(
         songs = emptyList(),
         playerState = PlayerState(),
-        onSongClick = {_, _ -> }
+        onSongClick = { _, _ -> },
+        onPlayPauseClick = {},
+        onNext = {},
+        onNavigateToPlayerScreen = {}
     )
 }

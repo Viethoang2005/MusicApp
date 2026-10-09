@@ -78,7 +78,7 @@ fun CardSongItem(
 fun CardSongItemPreview() {
     CardSongItem(
         SongUIModel(
-            Song("1", "Te that, anh nho em", "","","", 255),
+            Song("1", "Te that, anh nho em", "","", 255),
             "Thanh Hung"
         ),
         false,
