@@ -1,10 +1,12 @@
 package com.example.musicapp
 
 import android.annotation.SuppressLint
+import androidx.annotation.OptIn
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.musicapp.data.model.SongUIModel
 import com.example.musicapp.player.MusicPlayerManager
+import dagger.hilt.android.UnstableApi
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,7 +21,7 @@ enum class RepeatMode {
 data class PlayerState(
     val currentSong: SongUIModel? = null,
     val isPlaying: Boolean = false,
-    var currentPosition: Long = 0L,
+    val currentPosition: Long = 0L,
     val duration: Long = 0L,
     val currentSongId: String? = null,
     val playlist: List<SongUIModel> = emptyList(),
@@ -27,7 +29,8 @@ data class PlayerState(
     val repeatMode: RepeatMode = RepeatMode.OFF
 )
 @HiltViewModel
-class SongViewModel @Inject constructor(
+class SongViewModel @OptIn(UnstableApi::class)
+@Inject constructor(
     private val musicPlayerManager: MusicPlayerManager
 ): ViewModel() {
 
@@ -62,25 +65,42 @@ class SongViewModel @Inject constructor(
         playSong(songs[safeIndex])
     }
 
+    @OptIn(UnstableApi::class)
     fun seekTo(position: Long) {
         musicPlayerManager.seekTo(position)
-        _playerState.value.currentPosition = position
+
+        _playerState.value = _playerState.value.copy(
+            currentPosition = position
+        )
     }
 
+    @OptIn(UnstableApi::class)
     fun playSong(song: SongUIModel) {
         val currentList = _playerState.value.playlist
-        val index = currentList.indexOfFirst { it.song.id == song.song.id }
+        val index = currentList.indexOfFirst {
+            it.song.id == song.song.id
+        }
 
-        musicPlayerManager.play(song.song.audioUrl)
+        musicPlayerManager.play(
+            url = song.song.audioUrl,
+            title = song.song.title,
+            artist = song.artistName
+        )
+
         _playerState.value = _playerState.value.copy(
             currentSong = song,
             currentSongId = song.song.id,
             isPlaying = true,
-            duration = musicPlayerManager.duration.coerceAtLeast(0L),
-            currentIndex = if(index != -1) index else _playerState.value.currentIndex
+            duration = musicPlayerManager.duration,
+            currentIndex = if (index != -1) {
+                index
+            } else {
+                _playerState.value.currentIndex
+            }
         )
     }
 
+    @OptIn(UnstableApi::class)
     fun togglePlayPause() {
         musicPlayerManager.togglePlayPause()
         _playerState.value = _playerState.value.copy(

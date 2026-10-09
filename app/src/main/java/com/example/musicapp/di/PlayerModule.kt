@@ -1,6 +1,7 @@
 package com.example.musicapp.di
 
 import android.content.Context
+import androidx.media3.exoplayer.ExoPlayer
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -14,9 +15,9 @@ object PlayerModule {
 
     @Provides
     @Singleton
-    fun provideContext(
+    fun provideExoPlayer(
         @ApplicationContext context: Context
-    ) : Context{
-        return context
+    ) : ExoPlayer{
+        return ExoPlayer.Builder(context).build()
     }
 }
